@@ -197,7 +197,7 @@ class Product extends Component {
                                         <div className="input-radio-label__list">
                                             {
                                                 product.materials.map((material, key)=>{
-                                                    return <label>
+                                                    return <label key={key}>
                                                         <input type="radio" name="material" />
                                                         <span>{material}</span>
                                                     </label>

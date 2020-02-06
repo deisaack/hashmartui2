@@ -22,7 +22,7 @@ export function quickviewOpen(productId) {
         new Promise((resolve) => {
             const services = new Services();
             services.getProduct(productId).then(resp=>{
-                const product = {
+                const product0 = {
                     id: 11,
                     name: 'Body Up Padded Wireless Bra',
                     price: 949,
@@ -49,11 +49,10 @@ export function quickviewOpen(productId) {
                     sku: "8383IO/ME2",
                     description: "The days of unsupportive strapless bras are over! Shop our strapless bras and convertible bras that will stay put during every move or shake"
                 };
-
+                let product = services.sanitizeSingleProduct(resp);
                 if (product) {
                     dispatch(quickviewOpenSuccess(product));
                 }
-
                 resolve();
             }).catch(err=>{services.__handleCatch(err)});
         })

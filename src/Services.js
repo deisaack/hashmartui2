@@ -17,41 +17,55 @@ export default class Services {
         return axios.get(`${this.BASE_URL}/api/v1/hashmart/get-products-main-menue`, this.CONFIG);
     };
 
-    getProduct = e =>{
-        return axios.get(`${this.BASE_URL}/api/v1/hashmart/get-products-main-menue`, this.CONFIG);
+    getProduct = productId =>{
+        return axios.get(`${this.BASE_URL}/api/v1/hashmart/get-single-product/${productId}`, this.CONFIG);
     };
 
+    sanitizeSingleProduct = (resp) => {
+        if (resp.data.products && resp.data.products.length) {
+            let data = resp.data.products[0];
+            let images = [];
+            let features = [];
+            data.features.map((obj, key) => {
+                features.push({
+                    name: obj.name,
+                    value: obj.description
+                })
+            });
+            data.productFiles.map((obj, i) => {
+                images.push(obj.fileName)
+            });
+            if (!images) {
+                images.push("https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/o/body_up_padded_wireless_bra.jpg")
+            }
+            return {
+                id: data.productCode,
+                name: data.productName,
+                price: data.price,
+                compareAtPrice: data.actuaLAmount,
+                images: images,
+                badges: ['sale'],
+                rating: 3,
+                reviews: 15,
+                quantity: data.availableQuantity,
+                availability: data.availableQuantity > 0 ? 'in-stock' : "out-of-stock",
+                features: features,
+                materials: ["cotton", "wool", "nylon"],
+                options: [],
+                brand: data.brandCode,
+                sku: data.subCategoryCode,
+                description: data.description,
+                brandCode: data.brandCode,
+                companyCode: data.companyCode,
+            }
+        }
+        return {}
+    };
 
     fetchProduct = (setProduct, productId) =>{
-        axios.get(`${this.BASE_URL}/api/v1/hashmart/get-products-main-menue`, this.CONFIG)
+        axios.get(`${this.BASE_URL}/api/v1/hashmart/get-single-product/${productId}`, this.CONFIG)
             .then(resp=>{
-                setProduct({
-                    id: productId,
-                    name: 'Body Up Padded Wireless Bra',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: [
-                        'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/o/body_up_padded_wireless_bra.jpg',
-                        'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg',
-                        'https://i.roamcdn.net/hz/pi/listing-thumb-220w/96168ceef9160d9a4e26d78af5b82e8d/-/hzfiles/pi/picture/q9rjj05/51cb08780b17c96c424e7b0c3a61b2881e2e25e4.jpeg'
-                    ],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Elasticity', value: '750 RPM' },
-                        { name: 'Origin', value: 'Turkey' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    materials: ["cotton", "wool", "nylon"],
-                    options: [],
-                    brand: "Wamlambez",
-                    sku: "8383IO/ME2",
-                    description: "The days of unsupportive strapless bras are over! Shop our strapless bras and convertible bras that will stay put during every move or shake"
-                })
+                setProduct(this.sanitizeSingleProduct(resp))
             }).catch(err=>{this.__handleCatch(err)});
     };
 
@@ -63,8 +77,36 @@ export default class Services {
 
     fetchCorousel = () =>{
         axios.get(`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`, this.CONFIG).then(resp=>{
+            let objs = [];
+            resp.data.map((item, i)=>{
+                if(item.status) {
+                    let image='https://hashmart.co.ke/media/wysiwyg/8_1.png';
+                    if (item.productFiles.length) {
+                        image=item.productFiles[0].fileName
+                        // console.log("IM", item.productFiles)
+                    }
+                    let slide = {
+                        title: item.description,
+                        text: "",
+                        image_classic: {
+                            ltr: image,
+                            rtl: image,
+                        },
+                        image_full: {
+                            ltr: image,
+                            rtl: image,
+                        },
+                        image_mobile: {
+                            ltr: image,
+                            rtl: image,
+                        }
+                    }
+                    objs.push(slide)
+                }
+            });
             this.that.setState({
-                slides: [
+                slides: objs,
+                slides1: [
                     {
                         title: 'Big choice of<br>Plumbing products',
                         text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.<br>Etiam pharetra laoreet dui quis molestie.',
@@ -102,14 +144,59 @@ export default class Services {
         }).catch(err=>{this.__handleCatch(err)})
     };
 
+    sanitizeProducts = (resp) => {
+        let objects = [];
+        let products = [];
+        resp.data.map((item, i)=>{
+            objects = objects.concat(item.products);
+        });
+
+        objects.map((item, i)=>{
+            let images = [];
+            let features = [];
+            item.features.map((obj, key)=>{
+                features.push({
+                    name: obj.name,
+                    value: obj.description
+                })
+            });
+            item.productFiles.map((obj, i)=>{
+                images.push(obj.fileName)
+            });
+            if (!images) {
+                images.push("https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/o/body_up_padded_wireless_bra.jpg")
+            }
+            let product = {
+                id: item.productCode,
+                name: item.productName,
+                price: item.price,
+                compareAtPrice: item.actuaLAmount,
+                brandCode: item.brandCode,
+                companyCode: item.companyCode,
+                description: item.description,
+                images: images,
+                badges: [],
+                rating: 3,
+                reviews: 15,
+                availability: item.availableQuantity>0 ? 'in-stock' : "out-of-stock",
+                quantity: item.availableQuantity,
+                features: features,
+                options: [],
+            };
+            products.push(product)
+        });
+        return products;
+    };
+
     fetchShopProducts = (dataSource) =>{
-        let url=`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`;
+        let url=`${this.BASE_URL}/api/v1/hashmart/get-products-main-menue`;
         if (dataSource==="new-arrivals"){
-            url=`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`;
         }
+
         axios.get(url, this.CONFIG).then(resp=>{
             this.that.setState({
-                products: [
+                products: this.sanitizeProducts(resp),
+                productso: [
                     {
                         id: 11,
                         name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
@@ -263,320 +350,326 @@ export default class Services {
                         options: [],
                     },
                 ]
-            })
+            });
+
         }).catch(err=>{this.__handleCatch(err)})
     };
 
     fetchBestSellingProducts = (setProducts) =>{
-        axios.get(`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`, this.CONFIG).then(resp=>{
-            setProducts([
-                {
-                    id: 11,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/o/body_up_padded_wireless_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 22,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 33,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg', 'images/products/product-4-1.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 111,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 222,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 333,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 44,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['images/products/product-4.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 55,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 111,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/o/body_up_padded_wireless_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 212,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 313,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg', 'images/products/product-4-1.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 1111,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 2122,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 3133,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 414,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['images/products/product-4.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-                {
-                    id: 515,
-                    name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
-                    price: 949,
-                    compareAtPrice: 1189,
-                    images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
-                    badges: ['sale'],
-                    rating: 3,
-                    reviews: 15,
-                    availability: 'in-stock',
-                    features: [
-                        { name: 'Speed', value: '750 RPM' },
-                        { name: 'Power Source', value: 'Cordless-Electric' },
-                        { name: 'Battery Cell Type', value: 'Lithium' },
-                        { name: 'Voltage', value: '20 Volts' },
-                        { name: 'Battery Capacity', value: '2 Ah' },
-                    ],
-                    options: [],
-                },
-            ])
-        }).catch(err=>{this.__handleCatch(err)})
+        let url=`${this.BASE_URL}/api/v1/hashmart/get-products-main-menue`;
+        axios.get(url, this.CONFIG).then(resp=> {
+                setProducts(this.sanitizeProducts(resp))
+        }).catch(err=>this.__handleCatch(err))
+        // axios.get(`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`, this.CONFIG).then(resp=>{
+        //     setProducts([
+        //         {
+        //             id: 11,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/o/body_up_padded_wireless_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 22,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 33,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg', 'images/products/product-4-1.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 111,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 222,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 333,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 44,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['images/products/product-4.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 55,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 111,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/o/body_up_padded_wireless_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 212,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/a/ray_padded_sports_bra.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 313,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/b/9/b9b20a72-9495-4a4e-8548-91abd82bfbe0.jpg', 'images/products/product-4-1.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 1111,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 2122,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/g/e/genuine_cow_leather_belt.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/a/4/a430fb20-aad7-47fc-9403-066f1e088bea.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 3133,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 414,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['images/products/product-4.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/h/u/huncacare-foot_scrub-green_tea_bamboo.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //         {
+        //             id: 515,
+        //             name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
+        //             price: 949,
+        //             compareAtPrice: 1189,
+        //             images: ['https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg', 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/s/a/sarma-electrician-saukuchi-guwahati-electricians-wftwh8fbr6.jpg'],
+        //             badges: ['sale'],
+        //             rating: 3,
+        //             reviews: 15,
+        //             availability: 'in-stock',
+        //             features: [
+        //                 { name: 'Speed', value: '750 RPM' },
+        //                 { name: 'Power Source', value: 'Cordless-Electric' },
+        //                 { name: 'Battery Cell Type', value: 'Lithium' },
+        //                 { name: 'Voltage', value: '20 Volts' },
+        //                 { name: 'Battery Capacity', value: '2 Ah' },
+        //             ],
+        //             options: [],
+        //         },
+        //     ])
+        // }).catch(err=>{this.__handleCatch(err)})
     };
+
     searchProducts = (setProducts, query) =>{
         console.log("search performed", query);
         let products = [
@@ -954,88 +1047,127 @@ export default class Services {
     };
 
     fetchPopularCategories = (setPopularCategories) =>{
-        axios.get(`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`, this.CONFIG).then(resp=>{
+        axios.get(`${this.BASE_URL}/api/v1/hashmart/get-product-category`, this.CONFIG).then(resp=>{
+            let categoryList = [];
+            resp.data.map((item, i)=>{
+                item.category.map((obj, j)=>{
+                    // if(obj.categoryDescription) {
+                        let image = 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/m/rm-115.jpeg_1.jpg';
+                        if (obj.imageUrl) {
+                            image = obj.imageUrl
+                        }
+                        console.log('item', obj);
+                        let subcategories = [];
+                        obj.subCategory.map((subCategory, k) => {
+                            subcategories.push({title: subCategory.subCategoryDescription, url: '/shop'})
+                        });
+                        let o = {
+                            title: obj.categoryDescription,
+                            url: '/shop',
+                            products: 572,
+                            image: image,
+                            subcategories: subcategories,
+                        };
+                        let op = {
+                            title: 'Power saw Tools',
+                            url: '/shop',
+                            products: 572,
+                            image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/m/rm-115.jpeg_1.jpg',
+                            subcategories: [
+                                { title: 'Screwdrivers', url: '/shop' },
+                                { title: 'Milling Cutters', url: '/shop' },
+                                { title: 'Sanding Machines', url: '/shop' },
+                                { title: 'Wrenches', url: '/shop' },
+                                { title: 'Drills', url: '/shop' },
+                            ],
+                        }
+                        categoryList.push(o);
+                    // }
+                })
+            });
 
-            setPopularCategories([
-                {
-                    title: 'Power saw Tools',
-                    url: '/shop',
-                    products: 572,
-                    image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/m/rm-115.jpeg_1.jpg',
-                    subcategories: [
-                        { title: 'Screwdrivers', url: '/shop' },
-                        { title: 'Milling Cutters', url: '/shop' },
-                        { title: 'Sanding Machines', url: '/shop' },
-                        { title: 'Wrenches', url: '/shop' },
-                        { title: 'Drills', url: '/shop' },
-                    ],
-                },
-                {
-                    title: 'Hand Tools',
-                    url: '/shop',
-                    products: 134,
-                    image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/n/a/nature_sachet_stone_pouch_car_air_freshener_.jpg',
-                    subcategories: [
-                        { title: 'Screwdrivers', url: '/shop' },
-                        { title: 'Hammers', url: '/shop' },
-                        { title: 'Spanners', url: '/shop' },
-                        { title: 'Handsaws', url: '/shop' },
-                        { title: 'Paint Tools', url: '/shop' },
-                    ],
-                },
-                {
-                    title: 'Machine Tools',
-                    url: '/shop',
-                    products: 301,
-                    image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/-/1-23-1_1_.jpg',
-                    subcategories: [
-                        { title: 'Lathes', url: '/shop' },
-                        { title: 'Milling Machines', url: '/shop' },
-                        { title: 'Grinding Machines', url: '/shop' },
-                        { title: 'CNC Machines', url: '/shop' },
-                        { title: 'Sharpening Machines', url: '/shop' },
-                    ],
-                },
-                {
-                    title: 'Power Machinery',
-                    url: '/shop',
-                    products: 79,
-                    image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/_/1_58__1.jpg',
-                    subcategories: [
-                        { title: 'Generators', url: '/shop' },
-                        { title: 'Compressors', url: '/shop' },
-                        { title: 'Winches', url: '/shop' },
-                        { title: 'Plasma Cutting', url: '/shop' },
-                        { title: 'Electric Motors', url: '/shop' },
-                    ],
-                },
-                {
-                    title: 'Measurement',
-                    url: '/shop',
-                    products: 366,
-                    image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/_/1_60_.jpg',
-                    subcategories: [
-                        { title: 'Tape Measure', url: '/shop' },
-                        { title: 'Theodolites', url: '/shop' },
-                        { title: 'Thermal Imagers', url: '/shop' },
-                        { title: 'Calipers', url: '/shop' },
-                        { title: 'Levels', url: '/shop' },
-                    ],
-                },
-                {
-                    title: 'Clothes and PPE',
-                    url: '/shop',
-                    products: 81,
-                    image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/6/168090-2.jpg',
-                    subcategories: [
-                        { title: 'Winter Workwear', url: '/shop' },
-                        { title: 'Summer Workwear', url: '/shop' },
-                        { title: 'Helmets', url: '/shop' },
-                        { title: 'Belts and Bags', url: '/shop' },
-                        { title: 'Work Shoes', url: '/shop' },
-                    ],
-                },
-            ])
+            console.log('categoryList', categoryList);
+            setPopularCategories(categoryList.slice(0, 6));
+            // setPopularCategories([
+            //     {
+            //         title: 'Power saw Tools',
+            //         url: '/shop',
+            //         products: 572,
+            //         image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/r/m/rm-115.jpeg_1.jpg',
+            //         subcategories: [
+            //             { title: 'Screwdrivers', url: '/shop' },
+            //             { title: 'Milling Cutters', url: '/shop' },
+            //             { title: 'Sanding Machines', url: '/shop' },
+            //             { title: 'Wrenches', url: '/shop' },
+            //             { title: 'Drills', url: '/shop' },
+            //         ],
+            //     },
+            //     {
+            //         title: 'Hand Tools',
+            //         url: '/shop',
+            //         products: 134,
+            //         image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/n/a/nature_sachet_stone_pouch_car_air_freshener_.jpg',
+            //         subcategories: [
+            //             { title: 'Screwdrivers', url: '/shop' },
+            //             { title: 'Hammers', url: '/shop' },
+            //             { title: 'Spanners', url: '/shop' },
+            //             { title: 'Handsaws', url: '/shop' },
+            //             { title: 'Paint Tools', url: '/shop' },
+            //         ],
+            //     },
+            //     {
+            //         title: 'Machine Tools',
+            //         url: '/shop',
+            //         products: 301,
+            //         image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/-/1-23-1_1_.jpg',
+            //         subcategories: [
+            //             { title: 'Lathes', url: '/shop' },
+            //             { title: 'Milling Machines', url: '/shop' },
+            //             { title: 'Grinding Machines', url: '/shop' },
+            //             { title: 'CNC Machines', url: '/shop' },
+            //             { title: 'Sharpening Machines', url: '/shop' },
+            //         ],
+            //     },
+            //     {
+            //         title: 'Power Machinery',
+            //         url: '/shop',
+            //         products: 79,
+            //         image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/_/1_58__1.jpg',
+            //         subcategories: [
+            //             { title: 'Generators', url: '/shop' },
+            //             { title: 'Compressors', url: '/shop' },
+            //             { title: 'Winches', url: '/shop' },
+            //             { title: 'Plasma Cutting', url: '/shop' },
+            //             { title: 'Electric Motors', url: '/shop' },
+            //         ],
+            //     },
+            //     {
+            //         title: 'Measurement',
+            //         url: '/shop',
+            //         products: 366,
+            //         image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/_/1_60_.jpg',
+            //         subcategories: [
+            //             { title: 'Tape Measure', url: '/shop' },
+            //             { title: 'Theodolites', url: '/shop' },
+            //             { title: 'Thermal Imagers', url: '/shop' },
+            //             { title: 'Calipers', url: '/shop' },
+            //             { title: 'Levels', url: '/shop' },
+            //         ],
+            //     },
+            //     {
+            //         title: 'Clothes and PPE',
+            //         url: '/shop',
+            //         products: 81,
+            //         image: 'https://hashmart.co.ke/media/catalog/product/cache/a0c8242217130500092bca78bd24c27f/1/6/168090-2.jpg',
+            //         subcategories: [
+            //             { title: 'Winter Workwear', url: '/shop' },
+            //             { title: 'Summer Workwear', url: '/shop' },
+            //             { title: 'Helmets', url: '/shop' },
+            //             { title: 'Belts and Bags', url: '/shop' },
+            //             { title: 'Work Shoes', url: '/shop' },
+            //         ],
+            //     },
+            // ])
         }).catch(err=>{this.__handleCatch(err)})
     };
 
@@ -1046,8 +1178,10 @@ export default class Services {
     };
 
     fetchProductColumns = (setColumns) =>{
-        axios.get(`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`, this.CONFIG).then(resp=>{
-            let products =[
+        let url=`${this.BASE_URL}/api/v1/hashmart/get-products-main-menue`;
+        axios.get(url, this.CONFIG).then(resp=>{
+        // axios.get(`${this.BASE_URL}/api/v1/hashmart/get-active-dashboard-images`, this.CONFIG).then(resp=>{
+            let productst =[
                 {
                     id: 11,
                     name: 'Drill Series 3 Brandix KSR4590PQS 1500 Watts',
@@ -1353,6 +1487,7 @@ export default class Services {
                     options: [],
                 },
             ];
+            let products = this.sanitizeProducts(resp);
             setColumns([
                 {
                     title: 'Top Rated Products',
@@ -1360,11 +1495,11 @@ export default class Services {
                 },
                 {
                     title: 'Special Offers',
-                    products: products.slice(3, 6),
+                    products: products.slice(2, 5),
                 },
                 {
                     title: 'Bestsellers',
-                    products: products.slice(6, 9),
+                    products: products.slice(3, 6),
                 },
             ])
         }).catch(err=>{this.__handleCatch(err)})
